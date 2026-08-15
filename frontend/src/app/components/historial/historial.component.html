@@ -1,0 +1,111 @@
+<div class="main-container">
+
+  <!-- Header Unificado: Selector + Ficha de Producto -->
+  <div class="glass-card header-unified-card">
+    <div class="header-left">
+      <div class="header-title-box mb-3">
+        <h2><i class="pi pi-history"></i> Historial de Movimientos por Producto</h2>
+        <p>Consulta aislada de entradas/salidas de inventario con ficha de producto en vivo.</p>
+      </div>
+
+      <!-- Selector de Producto -->
+      <div class="form-group">
+        <label>Seleccionar Producto a Consultar:</label>
+        <select class="custom-select" [(ngModel)]="selectedProductoId" (change)="onProductoChange(selectedProductoId)">
+          <option *ngFor="let p of productosList" [value]="p.id">{{ p.nombre }}</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Ficha Informativa del Producto Seleccionado -->
+    <div class="header-right" *ngIf="selectedProducto">
+      <div class="product-profile-badge">
+        <img [src]="selectedProducto.imagen" [alt]="selectedProducto.nombre" class="profile-avatar" />
+        <div class="profile-details">
+          <h3>{{ selectedProducto.nombre }}</h3>
+          <p class="text-muted">{{ selectedProducto.descripcion }}</p>
+          <div class="chips-row">
+            <span class="category-chip">{{ selectedProducto.categoria }}</span>
+            <span class="stock-pill">
+              <i class="pi pi-box"></i> Stock en vivo: <strong>{{ selectedProducto.stock }} unidades</strong>
+            </span>
+            <span class="price-pill">
+              <i class="pi pi-tag"></i> Precio Catálogo: <strong>${{ selectedProducto.precio | number:'1.2-2'
+                }}</strong>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros del Historial -->
+  <div class="glass-card">
+    <div class="filter-row mb-4">
+      <div class="filter-box">
+        <select class="custom-select" [(ngModel)]="tipoTransaccionFiltro">
+          <option value="">Todos los Movimientos</option>
+          <option value="COMPRA">COMPRA</option>
+          <option value="VENTA">VENTA</option>
+        </select>
+      </div>
+
+      <div class="filter-box">
+        <input type="date" class="custom-input" [(ngModel)]="fechaInicioFiltroStr" placeholder="Fecha Desde" />
+      </div>
+
+      <div class="filter-box">
+        <input type="date" class="custom-input" [(ngModel)]="fechaFinFiltroStr" placeholder="Fecha Hasta" />
+      </div>
+
+      <button class="btn btn-primary" (click)="onFilter()">
+        <i class="pi pi-filter"></i> Filtrar Historial
+      </button>
+
+      <button class="btn btn-secondary" (click)="limpiarFiltros()">
+        <i class="pi pi-refresh"></i> Limpiar Filtros
+      </button>
+    </div>
+
+    <!-- Tabla Historial con async pipe -->
+    <div class="custom-table-container" *ngIf="historial$ | async as items">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th style="width: 60px;">#</th>
+            <th>Fecha / Hora</th>
+            <th>Tipo Movimiento</th>
+            <th>Cantidad</th>
+            <th>P. Unitario</th>
+            <th>Total ($)</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tx of items; let i = index">
+            <td><strong>{{ i + 1 }}</strong></td>
+            <td>{{ tx.fecha | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+            <td>
+              <span class="pill"
+                [ngClass]="{'pill-compra': tx.tipoTransaccion === 'COMPRA', 'pill-venta': tx.tipoTransaccion === 'VENTA'}">
+                <i [class]="tx.tipoTransaccion === 'COMPRA' ? 'pi pi-arrow-down-left' : 'pi pi-arrow-up-right'"></i>
+                {{ tx.tipoTransaccion }}
+              </span>
+            </td>
+            <td><strong>{{ tx.cantidad }} un.</strong></td>
+            <td>${{ tx.precioUnitario | number:'1.2-2' }}</td>
+            <td class="price-val">${{ tx.precioTotal | number:'1.2-2' }}</td>
+            <td><span class="text-muted">{{ tx.detalle }}</span></td>
+          </tr>
+          <tr *ngIf="items.length === 0">
+            <td colspan="7" class="empty-state">
+              <i class="pi pi-inbox empty-icon"></i>
+              <p>No hay historial de movimientos registrado para este producto con los filtros aplicados.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
