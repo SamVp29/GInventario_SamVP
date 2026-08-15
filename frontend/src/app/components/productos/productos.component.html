@@ -1,0 +1,204 @@
+<div class="main-container" *ngIf="productos$ | async as res">
+
+  <!-- Banner Top & KPI Summary -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon primary">
+        <i class="pi pi-box"></i>
+      </div>
+      <div class="kpi-info">
+        <label>Total Productos</label>
+        <div class="value">{{ res.totalCount }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon success">
+        <i class="pi pi-dollar"></i>
+      </div>
+      <div class="kpi-info">
+        <label>Valor Catálogo</label>
+        <div class="value">${{ calcularValorTotal(res.items) | number:'1.2-2' }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon warning">
+        <i class="pi pi-exclamation-triangle"></i>
+      </div>
+      <div class="kpi-info">
+        <label>Stock Bajo (&lt;=5)</label>
+        <div class="value">{{ productosStockBajoCount(res.items) }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="card-header">
+      <div class="header-title-box">
+        <h2>Catálogo de Productos</h2>
+        <p>Gestión centralizada de stock, categorías e imágenes del inventario bancario.</p>
+      </div>
+      <button class="btn btn-primary" (click)="openNew()">
+        <i class="pi pi-plus"></i> Nuevo Producto
+      </button>
+    </div>
+
+    <!-- Barra de Búsqueda y Filtros -->
+    <div class="filter-row mb-4">
+      <div class="search-box">
+        <i class="pi pi-search search-icon"></i>
+        <input type="text" class="custom-input search-input" [(ngModel)]="busqueda"
+          placeholder="Buscar por nombre o descripción..." (keyup.enter)="onSearch()" />
+      </div>
+
+      <div class="filter-box">
+        <input type="text" class="custom-input" [(ngModel)]="categoria" placeholder="Categoría (ej. Tecnología)"
+          (keyup.enter)="onSearch()" />
+      </div>
+
+      <button class="btn btn-primary" (click)="onSearch()">
+        <i class="pi pi-filter"></i> Filtrar
+      </button>
+
+      <button class="btn btn-secondary" (click)="limpiarFiltros()">
+        <i class="pi pi-refresh"></i> Limpiar
+      </button>
+    </div>
+
+    <!-- Tabla Personalizada con trackBy -->
+    <div class="custom-table-container">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th style="width: 60px;">#</th>
+            <th style="width: 80px;">Imagen</th>
+            <th>Producto</th>
+            <th>Categoría</th>
+            <th>Descripción</th>
+            <th>Precio ($)</th>
+            <th>Stock Actual</th>
+            <th style="text-align: center; width: 120px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let prod of res.items; let i = index; trackBy: trackById">
+            <td><strong>{{ (page - 1) * pageSize + i + 1 }}</strong></td>
+            <td>
+              <img [src]="prod.imagen" [alt]="prod.nombre" class="table-img" />
+            </td>
+            <td><strong>{{ prod.nombre }}</strong></td>
+            <td>
+              <span class="category-chip">{{ prod.categoria }}</span>
+            </td>
+            <td><span class="text-muted">{{ prod.descripcion }}</span></td>
+            <td class="price-val">${{ prod.precio | number:'1.2-2' }}</td>
+            <td>
+              <span class="pill" [ngClass]="{'pill-stock-low': prod.stock <= 5, 'pill-stock-ok': prod.stock > 5}">
+                <i [class]="prod.stock <= 5 ? 'pi pi-exclamation-circle' : 'pi pi-check-circle'"></i>
+                {{ prod.stock }} unidades
+              </span>
+            </td>
+            <td style="text-align: center;">
+              <div class="actions-group">
+                <button type="button" class="btn-icon btn-edit" (click)="$event.stopPropagation(); editProducto(prod)" title="Editar">
+                  <i class="pi pi-pencil"></i>
+                </button>
+                <button type="button" class="btn-icon btn-delete" (click)="$event.stopPropagation(); deleteProducto(prod)" title="Eliminar">
+                  <i class="pi pi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="res.items.length === 0">
+            <td colspan="8" class="empty-state">
+              <i class="pi pi-inbox empty-icon"></i>
+              <p>No se encontraron productos en el inventario.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginador Personalizado -->
+    <div class="pagination-footer">
+      <div class="pagination-info">
+        Mostrando página <strong>{{ page }}</strong> de <strong>{{ getTotalPages(res.totalCount) }}</strong> (Total: {{
+        res.totalCount }} registros)
+      </div>
+      <div class="pagination-controls">
+        <button class="btn btn-secondary" [disabled]="page <= 1" (click)="previousPage(res.totalCount)">
+          <i class="pi pi-chevron-left"></i> Anterior
+        </button>
+        <button class="btn btn-secondary" [disabled]="page >= getTotalPages(res.totalCount)"
+          (click)="nextPage(res.totalCount)">
+          Siguiente <i class="pi pi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Personalizado Elegante para Crear / Editar Producto -->
+<div class="modal-overlay" *ngIf="productoDialog">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class="pi pi-box"></i> {{ isEditMode ? 'Editar Producto' : 'Crear Nuevo Producto' }}</h3>
+      <button class="btn-icon btn-secondary" (click)="hideDialog()"><i class="pi pi-times"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group mb-3">
+        <label>Nombre del Producto *</label>
+        <input type="text" class="custom-input" [(ngModel)]="productoForm.nombre"
+          placeholder="Ej. Laptop Dell XPS 15" />
+      </div>
+
+      <div class="form-group mb-3">
+        <label>Categoría *</label>
+        <input type="text" class="custom-input" [(ngModel)]="productoForm.categoria" placeholder="Ej. Tecnología" />
+      </div>
+
+      <div class="form-group mb-3">
+        <label>Descripción</label>
+        <input type="text" class="custom-input" [(ngModel)]="productoForm.descripcion"
+          placeholder="Ej. Equipo i7 16GB RAM" />
+      </div>
+
+      <div class="form-group mb-3">
+        <label>URL de Imagen</label>
+        <input type="text" class="custom-input" [(ngModel)]="productoForm.imagen" placeholder="https://..." />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Precio ($) *</label>
+          <input type="number" class="custom-input" [(ngModel)]="productoForm.precio" min="0.01" step="0.5" />
+        </div>
+        <div class="form-group">
+          <label>Stock Inicial *</label>
+          <input type="number" class="custom-input" [(ngModel)]="productoForm.stock" min="0" />
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="hideDialog()">Cancelar</button>
+      <button class="btn btn-primary" (click)="guardarProducto()">
+        <i class="pi pi-check"></i> {{ isEditMode ? 'Actualizar Producto' : 'Guardar Producto' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Toast Message Banners -->
+<div class="toast-container" *ngIf="toastMessage">
+  <div class="toast-card" [ngClass]="toastMessage.type">
+    <i [class]="toastMessage.type === 'success' ? 'pi pi-check-circle' : 'pi pi-exclamation-circle'"></i>
+    <div>
+      <strong>{{ toastMessage.title }}</strong>
+      <div>{{ toastMessage.text }}</div>
+    </div>
+  </div>
+</div>
