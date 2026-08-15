@@ -95,7 +95,7 @@ Formulario modal interactivo para registrar un nuevo producto con validaciones r
 
 ### 3. Pantalla para la edición de productos
 Formulario modal prellenado para actualizar la información existente de un producto (nombre, descripción, categoría, precio, stock).
-![Pantalla para Edición de Productos](docs/screenshots/03_modal_crear_producto.png)
+![Pantalla para Edición de Productos](docs/screenshots/08_modal_editar_producto.png)
 
 ### 4. Pantalla para la creación de transacciones
 Formulario modal con selector de productos y **validación compleja de stock disponible** para evitar ventas sin inventario suficiente.
@@ -103,11 +103,12 @@ Formulario modal con selector de productos y **validación compleja de stock dis
 
 ### 5. Pantalla para la edición de transacciones
 Permite modificar los datos de una transacción registrada recalculando y reajustando automáticamente el stock en el backend.
-![Pantalla para Edición de Transacciones](docs/screenshots/05_modal_crear_transaccion.png)
+![Pantalla para Edición de Transacciones](docs/screenshots/09_modal_editar_transaccion.png)
 
 ### 6. Pantalla de filtros dinámicos
 Búsqueda por término (nombre/descripción) y categoría en productos, además de filtro multinivel por producto, tipo de movimiento y rango de fechas en transacciones.
-![Pantalla de Filtros Dinámicos](docs/screenshots/02_filtro_productos.png)
+![Pantalla de Filtros Dinámicos Productos](docs/screenshots/02_filtro_productos.png)
+![Pantalla de Filtros Dinámicos Transacciones](docs/screenshots/10_filtro_transaccion.png)
 
 ### 7. Pantalla para la consulta de información de un formulario (extra)
 Vista especializada (`/historial`) que consulta la ficha técnica del producto seleccionado y su historial completo de movimientos auditados.
