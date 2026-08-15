@@ -1,0 +1,67 @@
+services:
+  # Base de Datos PostgreSQL
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: inventario_db
+    environment:
+      POSTGRES_DB: inventario_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventario_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Microservicio de Productos
+  productos_api:
+    build:
+      context: ./backend
+      dockerfile: src/Productos.API/Dockerfile
+    container_name: productos_api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=inventario_db;Username=postgres;Password=postgrespassword
+    ports:
+      - "5001:8080"
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+
+  # Microservicio de Transacciones
+  transacciones_api:
+    build:
+      context: ./backend
+      dockerfile: src/Transacciones.API/Dockerfile
+    container_name: transacciones_api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=inventario_db;Username=postgres;Password=postgrespassword
+      - Services__ProductosApiUrl=http://productos_api:8080
+    ports:
+      - "5002:8080"
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+      productos_api:
+        condition: service_started
+
+  # Frontend Angular
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: inventario_frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - productos_api
+      - transacciones_api
+
+volumes:
+  postgres_data:
