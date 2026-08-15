@@ -1,0 +1,26 @@
+# .NET / C#
+**/bin/
+**/obj/
+**/out/
+**/.vs/
+**/.vscode/
+*.user
+*.useros
+*.suo
+*.userprefs
+
+# Node / Angular
+**/node_modules/
+**/dist/
+**/.angular/
+**/npm-debug.log
+**/yarn-error.log
+
+# Temporary & Environment
+*.env
+*.env.local
+!.env.example
+.DS_Store
+Thumbs.db
+
+readmeVersion.md
