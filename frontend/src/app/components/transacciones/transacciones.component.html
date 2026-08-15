@@ -1,0 +1,238 @@
+<div class="main-container" *ngIf="transacciones$ | async as res">
+
+  <!-- KPI Metrics Bar -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon primary">
+        <i class="pi pi-arrow-right-arrow-left"></i>
+      </div>
+      <div class="kpi-info">
+        <label>Total Movimientos</label>
+        <div class="value">{{ res.totalCount }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon success">
+        <i class="pi pi-arrow-down-left"></i>
+      </div>
+      <div class="kpi-info">
+        <label>Total Compras</label>
+        <div class="value">${{ calcularTotalCompras(res.items) | number:'1.2-2' }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon warning">
+        <i class="pi pi-arrow-up-right"></i>
+      </div>
+      <div class="kpi-info">
+        <label>Total Ventas</label>
+        <div class="value">${{ calcularTotalVentas(res.items) | number:'1.2-2' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="card-header">
+      <div class="header-title-box">
+        <h2>Registro de Transacciones de Inventario</h2>
+        <p>Monitoreo síncrono de entradas/salidas de stock e integridad transaccional.</p>
+      </div>
+      <button class="btn btn-primary" (click)="openNew()">
+        <i class="pi pi-plus"></i> Nueva Transacción
+      </button>
+    </div>
+
+    <!-- Filtros Avanzados -->
+    <div class="filter-row mb-4">
+      <div class="filter-box">
+        <select class="custom-select" [(ngModel)]="productoIdFiltro">
+          <option [ngValue]="undefined">Todos los Productos</option>
+          <option *ngFor="let p of productosList" [value]="p.id">{{ p.nombre }}</option>
+        </select>
+      </div>
+
+      <div class="filter-box">
+        <select class="custom-select" [(ngModel)]="tipoTransaccionFiltro">
+          <option value="">Todos los Tipos</option>
+          <option value="COMPRA">COMPRA</option>
+          <option value="VENTA">VENTA</option>
+        </select>
+      </div>
+
+      <div class="filter-box">
+        <input type="date" class="custom-input" [(ngModel)]="fechaInicioFiltroStr" placeholder="Fecha Inicio" />
+      </div>
+
+      <div class="filter-box">
+        <input type="date" class="custom-input" [(ngModel)]="fechaFinFiltroStr" placeholder="Fecha Fin" />
+      </div>
+
+      <button class="btn btn-primary" (click)="onFilter()">
+        <i class="pi pi-search"></i> Buscar
+      </button>
+
+      <button class="btn btn-secondary" (click)="limpiarFiltros()">
+        <i class="pi pi-refresh"></i> Limpiar
+      </button>
+    </div>
+
+    <!-- Tabla de Transacciones con trackBy -->
+    <div class="custom-table-container">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th style="width: 60px;">#</th>
+            <th>Fecha / Hora</th>
+            <th>Tipo</th>
+            <th>Producto</th>
+            <th>Stock Actual</th>
+            <th>Cantidad</th>
+            <th>P. Unitario</th>
+            <th>P. Total</th>
+            <th>Detalle</th>
+            <th style="text-align: center; width: 120px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tx of res.items; let i = index; trackBy: trackById">
+            <td><strong>{{ (page - 1) * pageSize + i + 1 }}</strong></td>
+            <td>{{ tx.fecha | date:'yyyy-MM-dd HH:mm' }}</td>
+            <td>
+              <span class="pill"
+                [ngClass]="{'pill-compra': tx.tipoTransaccion === 'COMPRA', 'pill-venta': tx.tipoTransaccion === 'VENTA'}">
+                <i [class]="tx.tipoTransaccion === 'COMPRA' ? 'pi pi-arrow-down-left' : 'pi pi-arrow-up-right'"></i>
+                {{ tx.tipoTransaccion }}
+              </span>
+            </td>
+            <td><strong>{{ tx.nombreProducto }}</strong></td>
+            <td>
+              <span class="stock-badge">{{ tx.stockProductoActual }} un.</span>
+            </td>
+            <td><strong>{{ tx.cantidad }}</strong></td>
+            <td>${{ tx.precioUnitario | number:'1.2-2' }}</td>
+            <td class="price-val">${{ tx.precioTotal | number:'1.2-2' }}</td>
+            <td><span class="text-muted">{{ tx.detalle }}</span></td>
+            <td style="text-align: center;">
+              <div class="actions-group">
+                <button type="button" class="btn-icon btn-edit" (click)="$event.stopPropagation(); editTransaccion(tx)" title="Editar">
+                  <i class="pi pi-pencil"></i>
+                </button>
+                <button type="button" class="btn-icon btn-delete" (click)="$event.stopPropagation(); deleteTransaccion(tx)" title="Anular">
+                  <i class="pi pi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="res.items.length === 0">
+            <td colspan="10" class="empty-state">
+              <i class="pi pi-inbox empty-icon"></i>
+              <p>No hay transacciones registradas.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination-footer">
+      <div class="pagination-info">
+        Página <strong>{{ page }}</strong> de <strong>{{ getTotalPages(res.totalCount) }}</strong> (Total: {{
+        res.totalCount }} registros)
+      </div>
+      <div class="pagination-controls">
+        <button class="btn btn-secondary" [disabled]="page <= 1" (click)="previousPage(res.totalCount)">
+          <i class="pi pi-chevron-left"></i> Anterior
+        </button>
+        <button class="btn btn-secondary" [disabled]="page >= getTotalPages(res.totalCount)"
+          (click)="nextPage(res.totalCount)">
+          Siguiente <i class="pi pi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Registrar / Editar Transacción -->
+<div class="modal-overlay" *ngIf="transaccionDialog">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class="pi pi-sort-alt"></i> {{ isEditMode ? 'Editar Transacción' : 'Registrar Movimiento de Inventario' }}
+      </h3>
+      <button class="btn-icon btn-secondary" (click)="hideDialog()"><i class="pi pi-times"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group mb-3" *ngIf="!isEditMode">
+        <label>Seleccionar Producto *</label>
+        <select class="custom-select" [(ngModel)]="transaccionForm.productoId"
+          (change)="onProductoChange(transaccionForm.productoId)">
+          <option *ngFor="let p of productosList" [value]="p.id">{{ p.nombre }}</option>
+        </select>
+      </div>
+
+      <!-- Banner de Stock Disponible -->
+      <div class="stock-info-banner mb-3" *ngIf="selectedProductoActual">
+        <i class="pi pi-info-circle"></i>
+        <div>
+          <strong>Stock Disponible en Productos.API: </strong>
+          <span class="stock-highlight">{{ selectedProductoActual.stock }} unidades</span>
+          <div class="text-xs">Precio de catálogo: ${{ selectedProductoActual.precio }}</div>
+        </div>
+      </div>
+
+      <div class="form-group mb-3">
+        <label>Tipo de Transacción *</label>
+        <select class="custom-select" [(ngModel)]="transaccionForm.tipoTransaccion">
+          <option value="COMPRA">COMPRA (Ingreso de Stock)</option>
+          <option value="VENTA">VENTA (Salida de Stock)</option>
+        </select>
+      </div>
+
+      <div class="form-row mb-3">
+        <div class="form-group">
+          <label>Cantidad *</label>
+          <input type="number" class="custom-input" [(ngModel)]="transaccionForm.cantidad" min="1" />
+        </div>
+        <div class="form-group">
+          <label>Precio Unitario ($) *</label>
+          <input type="number" class="custom-input" [(ngModel)]="transaccionForm.precioUnitario" min="0.01"
+            step="0.5" />
+        </div>
+      </div>
+
+      <div class="form-group mb-3">
+        <label>Precio Total Calculado</label>
+        <div class="precio-total-box">
+          ${{ (transaccionForm.cantidad * transaccionForm.precioUnitario) | number:'1.2-2' }} USD
+        </div>
+      </div>
+
+      <div class="form-group mb-3">
+        <label>Detalle / Observación</label>
+        <input type="text" class="custom-input" [(ngModel)]="transaccionForm.detalle"
+          placeholder="Ej. Venta en mostrador / Compra proveedor" />
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="hideDialog()">Cancelar</button>
+      <button class="btn btn-primary" (click)="guardarTransaccion()">
+        <i class="pi pi-check"></i> {{ isEditMode ? 'Actualizar Transacción' : 'Guardar Transacción' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Messages -->
+<div class="toast-container" *ngIf="toastMessage">
+  <div class="toast-card" [ngClass]="toastMessage.type">
+    <i [class]="toastMessage.type === 'success' ? 'pi pi-check-circle' : 'pi pi-exclamation-circle'"></i>
+    <div>
+      <strong>{{ toastMessage.title }}</strong>
+      <div>{{ toastMessage.text }}</div>
+    </div>
+  </div>
+</div>
